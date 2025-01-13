@@ -494,9 +494,20 @@ const Device = WebexPlugin.extend({
   register(deviceRegistrationOptions = {}) {
     return this._registerInternal(deviceRegistrationOptions).catch((error) => {
       if (error?.body?.message === 'User has excessive device registrations') {
-        return this.deleteDevices().then(() => {
-          return this._registerInternal(deviceRegistrationOptions);
-        });
+        this.logger.error('devices: user has excessive device registrations', error);
+
+        return this.deleteDevices()
+          .then(() => {
+            return this._registerInternal(deviceRegistrationOptions);
+          })
+          .catch((deleteDevicesError) => {
+            this.logger.error(
+              'devices: failed to delete after user found to have excessive device registrations',
+              deleteDevicesError
+            );
+
+            throw deleteDevicesError;
+          });
       }
       throw error;
     });
